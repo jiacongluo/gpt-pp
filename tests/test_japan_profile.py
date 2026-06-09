@@ -47,28 +47,23 @@ class JapanProfileTests(unittest.TestCase):
         self.assertNotIn("password", result)
         self.assertNotIn("security_question", result)
 
-    def test_fetch_japan_profile_uses_keyword_endpoint_and_sanitizes_response(self):
-        class FakeResponse:
-            status_code = 200
+    def test_fetch_japan_profile_generates_locally_without_network(self):
+        with patch("curl_cffi.requests.get", side_effect=AssertionError("network must not be used")) as get:
+            result = fetch_japan_profile("東京都")
 
-            def json(self):
-                return {
-                    "name": "鈴木 一郎",
-                    "nationalid": 987654321098,
-                    "credit_card_info": {"security_code": "999"},
-                    "address": {"prefecture": "東京都", "city": "新宿区"},
-                }
-
-        with patch("curl_cffi.requests.get", return_value=FakeResponse()) as get:
-            result = fetch_japan_profile("東京都 新宿区")
-
-        self.assertEqual(
-            get.call_args.args[0],
-            "https://hant.ratenn.com/jp-address/generate-by-keywords/%E6%9D%B1%E4%BA%AC%E9%83%BD%20%E6%96%B0%E5%AE%BF%E5%8C%BA",
-        )
-        self.assertEqual(result["name"], "鈴木 一郎")
+        self.assertEqual(result["address"]["prefecture"], "東京都")
+        self.assertRegex(result["address"]["postal_code"], r"^\d{3}-\d{4}$")
+        self.assertRegex(result["email"], r"@example\.(?:com|jp|co\.jp)$")
+        self.assertFalse(get.called)
         self.assertNotIn("nationalid", result)
         self.assertNotIn("credit_card_info", result)
+
+    def test_fetch_japan_profile_keyword_can_match_city_or_postal_prefix(self):
+        by_city = fetch_japan_profile("新宿区")
+        by_postal = fetch_japan_profile("160")
+
+        self.assertEqual(by_city["address"]["city"], "新宿区")
+        self.assertEqual(by_postal["address"]["postal_code"][:3], "160")
 
 
 if __name__ == "__main__":

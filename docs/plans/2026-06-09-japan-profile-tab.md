@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 在现有控制台中加入日本测试资料 Tab，通过本地同源接口调用公开资料源，并严格只展示白名单字段。
+**Goal:** 在现有控制台中加入日本测试资料 Tab，通过本地同源接口调用内置生成器，并严格只展示白名单字段。
 
-**Architecture:** 新增后端 `/api/japan-profile` 代理公开资料源并执行白名单过滤；新增纯 JavaScript 数据适配模块负责同源 URL、响应白名单映射和 TXT 文本生成；现有 `app.js` 只负责 Tab、请求状态、渲染、复制和下载。页面不保存原始响应。
+**Architecture:** 后端 `/api/japan-profile` 使用内置日本地区、姓名、公司和设备资料池生成白名单资料；新增纯 JavaScript 数据适配模块负责同源 URL、响应白名单映射和 TXT 文本生成；现有 `app.js` 只负责 Tab、请求状态、渲染、复制和下载。页面不保存原始响应。
 
 **Tech Stack:** 原生 HTML/CSS/JavaScript、Node.js 内置 `node:test`、Python `http.server` 风格现有服务、浏览器端 Fetch API。
 

@@ -161,6 +161,8 @@ test("content security policy keeps browser requests same-origin", () => {
     /connect-src 'self'/,
   );
   assert.doesNotMatch(server, /connect-src 'self' https:\/\/hant\.ratenn\.com/);
+  assert.doesNotMatch(server, /hant\.ratenn\.com/);
+  assert.doesNotMatch(server, /jp-address\/generate/);
 });
 
 test("stylesheet defines tab and responsive profile layouts", () => {

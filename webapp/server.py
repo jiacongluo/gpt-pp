@@ -8,6 +8,7 @@ import json
 import mimetypes
 import os
 import re
+import secrets
 import uuid
 import sys
 import threading
@@ -74,8 +75,6 @@ SUCCESS_CITY_HINTS = {
     if item.strip()
 }
 CURL_IMPERSONATE_PROFILE = os.getenv("PLUS_LINK_CURL_IMPERSONATE", "chrome").strip() or "chrome"
-JAPAN_PROFILE_ORIGIN = "https://hant.ratenn.com"
-JAPAN_PROFILE_TIMEOUT_SECONDS = float(os.getenv("PLUS_LINK_JAPAN_PROFILE_TIMEOUT_SECONDS", "10"))
 RACE_OVERALL_TIMEOUT_SECONDS = float(os.getenv("PLUS_LINK_RACE_TIMEOUT_SECONDS", "45"))
 RATE_WINDOW_SECONDS = 60
 RATE_LIMIT_PER_WINDOW = 120
@@ -315,6 +314,134 @@ ZERO_DECIMAL_CURRENCIES = {
     "xpf",
 }
 
+JAPAN_PROFILE_AREAS = [
+    {
+        "prefecture": "東京都",
+        "city": "新宿区",
+        "postal_prefix": "160",
+        "towns": ["西新宿", "新宿", "高田馬場", "四谷"],
+        "phone_area": "03",
+    },
+    {
+        "prefecture": "東京都",
+        "city": "渋谷区",
+        "postal_prefix": "150",
+        "towns": ["恵比寿", "神宮前", "代々木", "道玄坂"],
+        "phone_area": "03",
+    },
+    {
+        "prefecture": "東京都",
+        "city": "港区",
+        "postal_prefix": "106",
+        "towns": ["六本木", "赤坂", "南麻布", "芝公園"],
+        "phone_area": "03",
+    },
+    {
+        "prefecture": "大阪府",
+        "city": "大阪市北区",
+        "postal_prefix": "530",
+        "towns": ["梅田", "中之島", "天神橋", "堂島"],
+        "phone_area": "06",
+    },
+    {
+        "prefecture": "京都府",
+        "city": "京都市中京区",
+        "postal_prefix": "604",
+        "towns": ["御池通", "河原町通", "壬生", "烏丸通"],
+        "phone_area": "075",
+    },
+    {
+        "prefecture": "神奈川県",
+        "city": "横浜市西区",
+        "postal_prefix": "220",
+        "towns": ["みなとみらい", "高島", "北幸", "戸部町"],
+        "phone_area": "045",
+    },
+    {
+        "prefecture": "福岡県",
+        "city": "福岡市博多区",
+        "postal_prefix": "812",
+        "towns": ["博多駅前", "祇園町", "中洲", "東比恵"],
+        "phone_area": "092",
+    },
+    {
+        "prefecture": "北海道",
+        "city": "札幌市中央区",
+        "postal_prefix": "060",
+        "towns": ["大通西", "南一条西", "北三条西", "円山西町"],
+        "phone_area": "011",
+    },
+    {
+        "prefecture": "愛知県",
+        "city": "名古屋市中区",
+        "postal_prefix": "460",
+        "towns": ["栄", "大須", "丸の内", "錦"],
+        "phone_area": "052",
+    },
+    {
+        "prefecture": "兵庫県",
+        "city": "神戸市中央区",
+        "postal_prefix": "650",
+        "towns": ["三宮町", "元町通", "海岸通", "北野町"],
+        "phone_area": "078",
+    },
+]
+JAPAN_PROFILE_LAST_NAMES = [
+    ("佐藤", "さとう", "サトウ"),
+    ("鈴木", "すずき", "スズキ"),
+    ("高橋", "たかはし", "タカハシ"),
+    ("田中", "たなか", "タナカ"),
+    ("伊藤", "いとう", "イトウ"),
+    ("渡辺", "わたなべ", "ワタナベ"),
+    ("山本", "やまもと", "ヤマモト"),
+    ("中村", "なかむら", "ナカムラ"),
+    ("小林", "こばやし", "コバヤシ"),
+    ("加藤", "かとう", "カトウ"),
+]
+JAPAN_PROFILE_GIVEN_NAMES = {
+    "男": [
+        ("健太", "けんた", "ケンタ"),
+        ("大輔", "だいすけ", "ダイスケ"),
+        ("直樹", "なおき", "ナオキ"),
+        ("翔太", "しょうた", "ショウタ"),
+        ("悠真", "ゆうま", "ユウマ"),
+    ],
+    "女": [
+        ("美咲", "みさき", "ミサキ"),
+        ("陽子", "ようこ", "ヨウコ"),
+        ("結衣", "ゆい", "ユイ"),
+        ("花子", "はなこ", "ハナコ"),
+        ("葵", "あおい", "アオイ"),
+    ],
+}
+JAPAN_PROFILE_COMPANIES = [
+    "株式会社青葉システム",
+    "合同会社未来商事",
+    "日本データサービス株式会社",
+    "株式会社さくら物流",
+    "東都クリエイティブ株式会社",
+    "株式会社北辰テック",
+]
+JAPAN_PROFILE_DEVICES = [
+    (
+        "Macintosh; Intel Mac OS X 14_4",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    ),
+    (
+        "Windows NT 10.0; Win64; x64",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    ),
+    (
+        "iPhone; CPU iPhone OS 17_5 like Mac OS X",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+    ),
+    (
+        "Linux; Android 14; Pixel 8",
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36",
+    ),
+]
+JAPAN_PROFILE_DOMAINS = ["example.jp", "example.co.jp", "example.com"]
+
 RATE_BUCKET: dict[str, list[float]] = {}
 RATE_LOCK = threading.Lock()
 
@@ -392,6 +519,76 @@ def japan_profile_text(value: Any) -> str:
     return text
 
 
+def japan_profile_choice(items: list[Any]) -> Any:
+    return items[secrets.randbelow(len(items))]
+
+
+def japan_profile_digits(length: int) -> str:
+    return "".join(str(secrets.randbelow(10)) for _ in range(length))
+
+
+def japan_profile_int(low: int, high: int) -> int:
+    return low + secrets.randbelow(high - low + 1)
+
+
+def japan_profile_area_matches(area: dict[str, Any], keyword: str) -> bool:
+    if not keyword:
+        return True
+    haystack = [
+        str(area.get("prefecture") or ""),
+        str(area.get("city") or ""),
+        str(area.get("postal_prefix") or ""),
+        *[str(town) for town in area.get("towns") or []],
+    ]
+    return any(keyword in item or item in keyword for item in haystack)
+
+
+def choose_japan_profile_area(keyword: str = "") -> dict[str, Any]:
+    normalized = str(keyword or "").strip()
+    matches = [area for area in JAPAN_PROFILE_AREAS if japan_profile_area_matches(area, normalized)]
+    return japan_profile_choice(matches or JAPAN_PROFILE_AREAS)
+
+
+def build_local_japan_profile(keyword: str = "") -> dict[str, Any]:
+    area = choose_japan_profile_area(keyword)
+    gender = japan_profile_choice(["男", "女"])
+    last_name = japan_profile_choice(JAPAN_PROFILE_LAST_NAMES)
+    given_name = japan_profile_choice(JAPAN_PROFILE_GIVEN_NAMES[gender])
+    town = japan_profile_choice(area["towns"])
+    postal_code = f"{area['postal_prefix']}-{japan_profile_digits(4)}"
+    block = f"{japan_profile_int(1, 5)}-{japan_profile_int(1, 28)}-{japan_profile_int(1, 20)}"
+    birth = f"{japan_profile_int(1960, 2004):04d}-{japan_profile_int(1, 12):02d}-{japan_profile_int(1, 28):02d}"
+    phone = f"{area['phone_area']}-{japan_profile_digits(4)}-{japan_profile_digits(4)}"
+    mobile = f"0{japan_profile_choice(['70', '80', '90'])}-{japan_profile_digits(4)}-{japan_profile_digits(4)}"
+    email_local = f"jp-test-{uuid.uuid4().hex[:10]}"
+    os_name, user_agent = japan_profile_choice(JAPAN_PROFILE_DEVICES)
+
+    return sanitize_japan_profile(
+        {
+            "name": f"{last_name[0]} {given_name[0]}",
+            "name_hiragana": f"{last_name[1]} {given_name[1]}",
+            "name_katakana": f"{last_name[2]} {given_name[2]}",
+            "gender": gender,
+            "birth": birth,
+            "email": f"{email_local}@{japan_profile_choice(JAPAN_PROFILE_DOMAINS)}",
+            "phone_number": phone,
+            "mobile_phone_number": mobile,
+            "address": {
+                "country": "Japan",
+                "prefecture": area["prefecture"],
+                "city": area["city"],
+                "postal_code": postal_code,
+                "full_address": f"{area['prefecture']}{area['city']}{town}{block}",
+            },
+            "company": japan_profile_choice(JAPAN_PROFILE_COMPANIES),
+            "salary": f"{japan_profile_int(260000, 780000)} JPY",
+            "os": os_name,
+            "user_agent": user_agent,
+            "homepage": f"https://{uuid.uuid4().hex[:8]}.example.jp",
+        }
+    )
+
+
 def sanitize_japan_profile(source: dict[str, Any]) -> dict[str, Any]:
     data = source if isinstance(source, dict) else {}
     address_source = data.get("address") if isinstance(data.get("address"), dict) else {}
@@ -421,53 +618,7 @@ def sanitize_japan_profile(source: dict[str, Any]) -> dict[str, Any]:
 
 
 def fetch_japan_profile(keyword: str = "") -> dict[str, Any]:
-    from curl_cffi import requests as curl_requests
-
-    normalized_keyword = str(keyword or "").strip()
-    if normalized_keyword:
-        endpoint = f"{JAPAN_PROFILE_ORIGIN}/jp-address/generate-by-keywords/{quote(normalized_keyword, safe='')}"
-    else:
-        endpoint = f"{JAPAN_PROFILE_ORIGIN}/jp-address/generate-address"
-
-    try:
-        response = curl_requests.get(
-            endpoint,
-            impersonate=CURL_IMPERSONATE_PROFILE,
-            timeout=JAPAN_PROFILE_TIMEOUT_SECONDS,
-            verify=True,
-        )
-    except Exception as exc:
-        raise PublicApiError(
-            "japan_profile_network_error",
-            "日本测试资料接口暂时不可用，请稍后再试",
-            HTTPStatus.BAD_GATEWAY,
-            {"error_type": type(exc).__name__},
-        ) from exc
-
-    status = int(getattr(response, "status_code", 0) or 0)
-    if status < 200 or status >= 300:
-        raise PublicApiError(
-            "japan_profile_upstream_failed",
-            "日本测试资料接口返回异常，请稍后再试",
-            HTTPStatus.BAD_GATEWAY,
-            {"status": status},
-        )
-
-    try:
-        data = response.json()
-    except Exception as exc:
-        raise PublicApiError(
-            "japan_profile_bad_json",
-            "日本测试资料接口响应无法解析",
-            HTTPStatus.BAD_GATEWAY,
-        ) from exc
-    if not isinstance(data, dict):
-        raise PublicApiError(
-            "japan_profile_bad_response",
-            "日本测试资料接口响应结构异常",
-            HTTPStatus.BAD_GATEWAY,
-        )
-    return sanitize_japan_profile(data)
+    return build_local_japan_profile(keyword)
 
 
 def extract_access_token(raw_value: str) -> str:
