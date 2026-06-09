@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from webapp.server import fetch_japan_profile, sanitize_japan_profile
+from webapp.server import fetch_japan_profile, load_japan_postal_areas, sanitize_japan_profile
 
 
 class JapanProfileTests(unittest.TestCase):
@@ -59,11 +59,21 @@ class JapanProfileTests(unittest.TestCase):
         self.assertNotIn("credit_card_info", result)
 
     def test_fetch_japan_profile_keyword_can_match_city_or_postal_prefix(self):
-        by_city = fetch_japan_profile("新宿区")
-        by_postal = fetch_japan_profile("160")
+        by_city = fetch_japan_profile("那覇市")
+        by_postal = fetch_japan_profile("900")
 
-        self.assertEqual(by_city["address"]["city"], "新宿区")
-        self.assertEqual(by_postal["address"]["postal_code"][:3], "160")
+        self.assertEqual(by_city["address"]["prefecture"], "沖縄県")
+        self.assertEqual(by_city["address"]["city"], "那覇市")
+        self.assertEqual(by_postal["address"]["postal_code"][:3], "900")
+
+    def test_japan_profile_uses_full_offline_postal_dataset(self):
+        areas = load_japan_postal_areas()
+        prefectures = {area["prefecture"] for area in areas}
+
+        self.assertGreater(len(areas), 100000)
+        self.assertEqual(len(prefectures), 47)
+        self.assertIn("沖縄県", prefectures)
+        self.assertIn("東京都", prefectures)
 
 
 if __name__ == "__main__":

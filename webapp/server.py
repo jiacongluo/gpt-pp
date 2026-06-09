@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import gzip
 import hashlib
 import json
 import mimetypes
@@ -25,8 +26,11 @@ from urllib.parse import parse_qsl, quote, unquote, urlencode, urlparse, urlspli
 APP_DIR = Path(__file__).resolve().parent
 ROOT_DIR = APP_DIR.parent
 STATIC_DIR = APP_DIR / "static"
+JAPAN_POSTAL_DATA_FILE = APP_DIR / "data" / "japan_postal_areas.jsonl.gz"
 COUNTER_FILE = APP_DIR / "counter.json"
 COUNTER_LOCK = threading.Lock()
+JAPAN_POSTAL_AREAS_CACHE: list[dict[str, str]] | None = None
+JAPAN_POSTAL_AREAS_LOCK = threading.Lock()
 ACTIVE_VISITORS: dict[str, float] = {}
 ACTIVE_VISITORS_LOCK = threading.Lock()
 MAX_BODY_BYTES = 512 * 1024
@@ -314,78 +318,6 @@ ZERO_DECIMAL_CURRENCIES = {
     "xpf",
 }
 
-JAPAN_PROFILE_AREAS = [
-    {
-        "prefecture": "東京都",
-        "city": "新宿区",
-        "postal_prefix": "160",
-        "towns": ["西新宿", "新宿", "高田馬場", "四谷"],
-        "phone_area": "03",
-    },
-    {
-        "prefecture": "東京都",
-        "city": "渋谷区",
-        "postal_prefix": "150",
-        "towns": ["恵比寿", "神宮前", "代々木", "道玄坂"],
-        "phone_area": "03",
-    },
-    {
-        "prefecture": "東京都",
-        "city": "港区",
-        "postal_prefix": "106",
-        "towns": ["六本木", "赤坂", "南麻布", "芝公園"],
-        "phone_area": "03",
-    },
-    {
-        "prefecture": "大阪府",
-        "city": "大阪市北区",
-        "postal_prefix": "530",
-        "towns": ["梅田", "中之島", "天神橋", "堂島"],
-        "phone_area": "06",
-    },
-    {
-        "prefecture": "京都府",
-        "city": "京都市中京区",
-        "postal_prefix": "604",
-        "towns": ["御池通", "河原町通", "壬生", "烏丸通"],
-        "phone_area": "075",
-    },
-    {
-        "prefecture": "神奈川県",
-        "city": "横浜市西区",
-        "postal_prefix": "220",
-        "towns": ["みなとみらい", "高島", "北幸", "戸部町"],
-        "phone_area": "045",
-    },
-    {
-        "prefecture": "福岡県",
-        "city": "福岡市博多区",
-        "postal_prefix": "812",
-        "towns": ["博多駅前", "祇園町", "中洲", "東比恵"],
-        "phone_area": "092",
-    },
-    {
-        "prefecture": "北海道",
-        "city": "札幌市中央区",
-        "postal_prefix": "060",
-        "towns": ["大通西", "南一条西", "北三条西", "円山西町"],
-        "phone_area": "011",
-    },
-    {
-        "prefecture": "愛知県",
-        "city": "名古屋市中区",
-        "postal_prefix": "460",
-        "towns": ["栄", "大須", "丸の内", "錦"],
-        "phone_area": "052",
-    },
-    {
-        "prefecture": "兵庫県",
-        "city": "神戸市中央区",
-        "postal_prefix": "650",
-        "towns": ["三宮町", "元町通", "海岸通", "北野町"],
-        "phone_area": "078",
-    },
-]
 JAPAN_PROFILE_LAST_NAMES = [
     ("佐藤", "さとう", "サトウ"),
     ("鈴木", "すずき", "スズキ"),
@@ -440,6 +372,25 @@ JAPAN_PROFILE_DEVICES = [
         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36",
     ),
 ]
+JAPAN_PROFILE_PHONE_AREAS = {
+    "札幌市": "011",
+    "仙台市": "022",
+    "さいたま市": "048",
+    "千葉市": "043",
+    "東京都": "03",
+    "横浜市": "045",
+    "川崎市": "044",
+    "名古屋市": "052",
+    "京都市": "075",
+    "大阪市": "06",
+    "堺市": "072",
+    "神戸市": "078",
+    "広島市": "082",
+    "福岡市": "092",
+    "北九州市": "093",
+    "那覇市": "098",
+}
+JAPAN_PROFILE_FALLBACK_PHONE_AREAS = ["011", "017", "022", "024", "025", "026", "027", "028", "043", "045", "052", "075", "078", "082", "087", "092", "098"]
 JAPAN_PROFILE_DOMAINS = ["example.jp", "example.co.jp", "example.com"]
 
 RATE_BUCKET: dict[str, list[float]] = {}
@@ -531,22 +482,84 @@ def japan_profile_int(low: int, high: int) -> int:
     return low + secrets.randbelow(high - low + 1)
 
 
+def load_japan_postal_areas() -> list[dict[str, str]]:
+    global JAPAN_POSTAL_AREAS_CACHE
+    if JAPAN_POSTAL_AREAS_CACHE is not None:
+        return JAPAN_POSTAL_AREAS_CACHE
+    with JAPAN_POSTAL_AREAS_LOCK:
+        if JAPAN_POSTAL_AREAS_CACHE is not None:
+            return JAPAN_POSTAL_AREAS_CACHE
+        rows: list[dict[str, str]] = []
+        with gzip.open(JAPAN_POSTAL_DATA_FILE, "rt", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    item = json.loads(line)
+                except Exception:
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                postal_code = japan_profile_text(item.get("postal_code"))
+                prefecture = japan_profile_text(item.get("prefecture"))
+                city = japan_profile_text(item.get("city"))
+                town = japan_profile_text(item.get("town"))
+                if postal_code and prefecture and city and town:
+                    rows.append(
+                        {
+                            "postal_code": postal_code,
+                            "prefecture": prefecture,
+                            "city": city,
+                            "town": town,
+                            "prefecture_kana": japan_profile_text(item.get("prefecture_kana")),
+                            "city_kana": japan_profile_text(item.get("city_kana")),
+                            "town_kana": japan_profile_text(item.get("town_kana")),
+                        }
+                    )
+        if not rows:
+            raise RuntimeError(f"Japan postal data is empty: {JAPAN_POSTAL_DATA_FILE}")
+        JAPAN_POSTAL_AREAS_CACHE = rows
+        return rows
+
+
+def normalize_japan_profile_keyword(keyword: str = "") -> str:
+    return re.sub(r"[\s\-ー−‐‑‒–—―]+", "", str(keyword or "").strip())
+
+
 def japan_profile_area_matches(area: dict[str, Any], keyword: str) -> bool:
-    if not keyword:
+    normalized = normalize_japan_profile_keyword(keyword)
+    if not normalized:
         return True
+    postal = normalize_japan_profile_keyword(str(area.get("postal_code") or ""))
+    if normalized.isdigit():
+        return postal.startswith(normalized)
     haystack = [
         str(area.get("prefecture") or ""),
         str(area.get("city") or ""),
-        str(area.get("postal_prefix") or ""),
-        *[str(town) for town in area.get("towns") or []],
+        str(area.get("town") or ""),
+        str(area.get("prefecture_kana") or ""),
+        str(area.get("city_kana") or ""),
+        str(area.get("town_kana") or ""),
+        postal,
+        postal[:3],
     ]
-    return any(keyword in item or item in keyword for item in haystack)
+    return any(normalized in normalize_japan_profile_keyword(item) for item in haystack)
 
 
 def choose_japan_profile_area(keyword: str = "") -> dict[str, Any]:
     normalized = str(keyword or "").strip()
-    matches = [area for area in JAPAN_PROFILE_AREAS if japan_profile_area_matches(area, normalized)]
-    return japan_profile_choice(matches or JAPAN_PROFILE_AREAS)
+    areas = load_japan_postal_areas()
+    matches = [area for area in areas if japan_profile_area_matches(area, normalized)]
+    return japan_profile_choice(matches or areas)
+
+
+def japan_profile_phone_area(area: dict[str, Any]) -> str:
+    prefecture = str(area.get("prefecture") or "")
+    city = str(area.get("city") or "")
+    if prefecture == "東京都":
+        return "03"
+    for city_prefix, phone_area in JAPAN_PROFILE_PHONE_AREAS.items():
+        if city.startswith(city_prefix):
+            return phone_area
+    return japan_profile_choice(JAPAN_PROFILE_FALLBACK_PHONE_AREAS)
 
 
 def build_local_japan_profile(keyword: str = "") -> dict[str, Any]:
@@ -554,11 +567,11 @@ def build_local_japan_profile(keyword: str = "") -> dict[str, Any]:
     gender = japan_profile_choice(["男", "女"])
     last_name = japan_profile_choice(JAPAN_PROFILE_LAST_NAMES)
     given_name = japan_profile_choice(JAPAN_PROFILE_GIVEN_NAMES[gender])
-    town = japan_profile_choice(area["towns"])
-    postal_code = f"{area['postal_prefix']}-{japan_profile_digits(4)}"
+    town = area["town"]
+    postal_code = area["postal_code"]
     block = f"{japan_profile_int(1, 5)}-{japan_profile_int(1, 28)}-{japan_profile_int(1, 20)}"
     birth = f"{japan_profile_int(1960, 2004):04d}-{japan_profile_int(1, 12):02d}-{japan_profile_int(1, 28):02d}"
-    phone = f"{area['phone_area']}-{japan_profile_digits(4)}-{japan_profile_digits(4)}"
+    phone = f"{japan_profile_phone_area(area)}-{japan_profile_digits(4)}-{japan_profile_digits(4)}"
     mobile = f"0{japan_profile_choice(['70', '80', '90'])}-{japan_profile_digits(4)}-{japan_profile_digits(4)}"
     email_local = f"jp-test-{uuid.uuid4().hex[:10]}"
     os_name, user_agent = japan_profile_choice(JAPAN_PROFILE_DEVICES)

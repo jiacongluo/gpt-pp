@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 在现有控制台中加入日本测试资料 Tab，通过本地同源接口调用内置生成器，并严格只展示白名单字段。
+**Goal:** 在现有控制台中加入日本测试资料 Tab，通过本地同源接口调用离线地址生成器，并严格只展示白名单字段。
 
-**Architecture:** 后端 `/api/japan-profile` 使用内置日本地区、姓名、公司和设备资料池生成白名单资料；新增纯 JavaScript 数据适配模块负责同源 URL、响应白名单映射和 TXT 文本生成；现有 `app.js` 只负责 Tab、请求状态、渲染、复制和下载。页面不保存原始响应。
+**Architecture:** 后端 `/api/japan-profile` 读取由日本邮便官方 UTF-8 全国邮编 CSV 生成的本地 gzip JSONL 索引，并组合本地姓名、公司和设备资料生成白名单资料；新增纯 JavaScript 数据适配模块负责同源 URL、响应白名单映射和 TXT 文本生成；现有 `app.js` 只负责 Tab、请求状态、渲染、复制和下载。页面不保存原始响应。
 
 **Tech Stack:** 原生 HTML/CSS/JavaScript、Node.js 内置 `node:test`、Python `http.server` 风格现有服务、浏览器端 Fetch API。
 
