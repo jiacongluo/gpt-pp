@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .DS_Store
 .env
+.local-server.pid
 webapp/*.log
 .venv/
 .tmp/
