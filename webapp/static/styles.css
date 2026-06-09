@@ -737,6 +737,220 @@ th.col-action, td.col-action {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.01);
 }
 
+.app-tabs {
+  width: calc(100% - 48px);
+  max-width: 1400px;
+  margin: 18px auto 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.app-tab {
+  min-height: 36px;
+  flex: 0 1 220px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.app-tab:hover {
+  transform: none;
+  background: rgba(15, 23, 42, 0.03);
+  box-shadow: none;
+}
+
+.app-tab.active {
+  border-color: rgba(37, 99, 235, 0.14);
+  background: #ffffff;
+  color: var(--blue);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.app-tab:focus-visible,
+.jp-copy-btn:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.5);
+  outline-offset: 2px;
+}
+
+.japan-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.japan-heading h1 {
+  margin-bottom: 6px;
+}
+
+.japan-heading-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.japan-status {
+  min-width: 220px;
+  max-width: 420px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.japan-status.loading {
+  border-color: rgba(37, 99, 235, 0.16);
+  color: var(--blue);
+}
+
+.japan-status.loading::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 7px;
+  border: 2px solid rgba(37, 99, 235, 0.18);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.japan-status.ok {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.04);
+  color: #047857;
+}
+
+.japan-status.error {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.04);
+  color: #b91c1c;
+}
+
+.japan-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto auto auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background: var(--panel-bg);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+}
+
+.japan-search-field {
+  margin: 0;
+}
+
+.japan-search-field input {
+  min-height: 42px;
+  margin-top: 0;
+}
+
+.japan-toolbar > button {
+  min-width: 92px;
+  min-height: 42px;
+  padding: 10px 14px;
+}
+
+.japan-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.japan-section {
+  min-width: 0;
+  padding: 22px;
+}
+
+.japan-section-head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.japan-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+}
+
+.japan-field {
+  position: relative;
+  min-width: 0;
+  min-height: 76px;
+  padding: 14px 38px 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.japan-field-wide {
+  grid-column: 1 / -1;
+}
+
+.japan-field > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.japan-field > strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.jp-copy-btn {
+  position: absolute;
+  top: 13px;
+  right: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.jp-copy-btn:hover {
+  transform: none;
+  border-color: rgba(37, 99, 235, 0.2);
+  background: rgba(37, 99, 235, 0.04);
+  color: var(--blue);
+  box-shadow: none;
+}
+
+.jp-copy-btn.copied {
+  border-color: rgba(16, 185, 129, 0.22);
+  background: rgba(16, 185, 129, 0.06);
+  color: #047857;
+}
+
 /* 响应式断点：宽屏下分栏，窄屏/移动端自动回退为单列 */
 @media (max-width: 1024px) {
   .shell {
@@ -762,6 +976,76 @@ th.col-action, td.col-action {
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .japan-profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .app-tabs {
+    width: calc(100% - 32px);
+    margin-top: 12px;
+  }
+
+  .app-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .japan-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .japan-status {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .japan-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .japan-search-field {
+    grid-column: 1 / -1;
+  }
+
+  .japan-toolbar > button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #jpDownloadBtn {
+    grid-column: 1 / -1;
+  }
+
+  .japan-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .japan-field {
+    min-height: 88px;
+    padding-right: 52px;
+  }
+
+  .jp-copy-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

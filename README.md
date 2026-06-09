@@ -21,7 +21,7 @@
 - **零额核对防御**：强制顺序校验，只允许符合 Zero-Amount 规则 of 会话提交，拦截非零额异常变动。
 - **智能住宅代理轮询**：后台静默调度多区域（首选日区/欧区）动态家宽住宅代理，当代理连接失效或遭对端拦截时，自动换 IP 重试。
 - **双引擎支持**：支持轻量级 Python HTTP 网关与高性能 Go 多并发代理网关（位于 [cmd/ppgateway/main.go](cmd/ppgateway/main.go)）。
-- **防克隆盾牌**：内嵌 Clickjacking 盾牌，在 [webapp/static/index.html](webapp/static/index.html) 中实现了 frame 逃逸校验，防止网页恶意 iframe 嵌套。
+- **防克隆盾牌**：服务端通过 `X-Frame-Options` 与 CSP `frame-ancestors` 响应头限制页面嵌套，防止网页恶意 iframe 嵌入。
 
 ---
 

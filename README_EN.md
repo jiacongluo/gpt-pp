@@ -21,7 +21,7 @@ The system intercepts and extracts critical session context from Stripe Hosted C
 - **Zero-Amount Guard Checking**: Enforces sequential validation, only allowing sessions matching Zero-Amount rules to proceed, and blocks any non-zero abnormalities.
 - **Intelligent Residential Proxy Rotation**: Silently dispatches residential proxies (preferring JP/EU zones) in the background. If a proxy connection fails or is blocked, it automatically rotates to another IP.
 - **Dual-Engine Support**: Supports both a lightweight Python HTTP gateway and a high-performance Go concurrent gateway (located in [cmd/ppgateway/main.go](cmd/ppgateway/main.go)).
-- **Clickjacking Protection**: Built-in frame escape validation inside [webapp/static/index.html](webapp/static/index.html) to prevent malicious iframe embedding.
+- **Clickjacking Protection**: Server-side `X-Frame-Options` and CSP `frame-ancestors` headers prevent malicious iframe embedding.
 
 ---
 

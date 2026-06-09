@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 在现有控制台中加入直接调用公开接口的日本测试资料 Tab，并严格只展示白名单字段。
+**Goal:** 在现有控制台中加入日本测试资料 Tab，通过本地同源接口调用公开资料源，并严格只展示白名单字段。
 
-**Architecture:** 新增纯 JavaScript 数据适配模块，负责接口 URL、响应白名单映射和 TXT 文本生成；现有 `app.js` 只负责 Tab、请求状态、渲染、复制和下载。页面不新增后端代理，不保存原始响应。
+**Architecture:** 新增后端 `/api/japan-profile` 代理公开资料源并执行白名单过滤；新增纯 JavaScript 数据适配模块负责同源 URL、响应白名单映射和 TXT 文本生成；现有 `app.js` 只负责 Tab、请求状态、渲染、复制和下载。页面不保存原始响应。
 
 **Tech Stack:** 原生 HTML/CSS/JavaScript、Node.js 内置 `node:test`、Python `http.server` 风格现有服务、浏览器端 Fetch API。
 
@@ -20,7 +20,7 @@
 
 测试以下行为：
 
-- 随机接口 URL 固定为 `/jp-address/generate-address`。
+- 随机接口 URL 固定为 `/api/japan-profile`。
 - 关键词使用 `encodeURIComponent`。
 - 映射保留姓名、假名、联系方式、地址、公司和设备字段。
 - 映射结果不含 `nationalid`、`credit_card_info`、`password`、`security_question`。
@@ -41,7 +41,7 @@ Expected: FAIL，因为 `webapp/static/japan-profile.js` 尚不存在。
 导出：
 
 ```js
-const API_ORIGIN = "https://hant.ratenn.com";
+const API_PATH = "/api/japan-profile";
 function buildProfileUrl(keyword = "") {}
 function normalizeJapanProfile(source) {}
 function profileToText(profile) {}
@@ -149,7 +149,7 @@ Expected: FAIL。
 
 - 支付控制台为默认 Tab。
 - 首次打开日本资料 Tab 自动加载。
-- 搜索和“换一组”请求公开接口。
+- 搜索和“换一组”请求本地同源接口。
 - 请求过程中禁用按钮并显示加载状态。
 - 错误时保留最后一次成功内容。
 - 字段复制按钮。

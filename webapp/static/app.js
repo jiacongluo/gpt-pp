@@ -530,3 +530,192 @@ syncGlobalCounter();
 
 // 每 6 秒高频拉取一次最新的后端持久化库真实成功总量 (完美支持多用户全站并发运营)
 setInterval(syncGlobalCounter, 6000);
+
+// === 应用视图切换与日本测试资料 ===
+const appTabs = Array.from(document.querySelectorAll(".app-tab"));
+const appViews = Array.from(document.querySelectorAll(".app-view"));
+const statsFloatCard = document.querySelector(".stats-float-card");
+const jpSearchForm = document.getElementById("jpSearchForm");
+const jpKeyword = document.getElementById("jpKeyword");
+const jpSearchBtn = document.getElementById("jpSearchBtn");
+const jpRefreshBtn = document.getElementById("jpRefreshBtn");
+const jpDownloadBtn = document.getElementById("jpDownloadBtn");
+const jpStatus = document.getElementById("jpStatus");
+let currentJapanProfile = null;
+let japanProfileLoaded = false;
+
+const japanFieldMap = {
+  jpName: profile => profile.name,
+  jpNameHiragana: profile => profile.nameHiragana,
+  jpNameKatakana: profile => profile.nameKatakana,
+  jpGender: profile => profile.gender,
+  jpBirth: profile => profile.birth,
+  jpEmail: profile => profile.email,
+  jpPhone: profile => profile.phone,
+  jpMobilePhone: profile => profile.mobilePhone,
+  jpCountry: profile => profile.address.country,
+  jpPrefecture: profile => profile.address.prefecture,
+  jpCity: profile => profile.address.city,
+  jpPostalCode: profile => profile.address.postalCode,
+  jpFullAddress: profile => profile.address.fullAddress,
+  jpCompany: profile => profile.company,
+  jpSalary: profile => profile.salary,
+  jpOs: profile => profile.os,
+  jpUserAgent: profile => profile.userAgent,
+  jpHomepage: profile => profile.homepage,
+};
+
+function setJapanStatus(text, kind = "idle") {
+  if (!jpStatus) return;
+  jpStatus.textContent = text;
+  jpStatus.className = `japan-status ${kind}`;
+}
+
+function setJapanLoading(loading) {
+  [jpSearchBtn, jpRefreshBtn, jpDownloadBtn].forEach(button => {
+    if (!button) return;
+    if (button === jpDownloadBtn) {
+      button.disabled = loading || !currentJapanProfile;
+      return;
+    }
+    button.disabled = loading;
+  });
+}
+
+function renderJapanProfile(profile) {
+  Object.entries(japanFieldMap).forEach(([id, read]) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = read(profile) || "—";
+    }
+  });
+}
+
+async function loadJapanProfile(keyword = "") {
+  if (!window.JapanProfileData) {
+    setJapanStatus("资料适配模块未加载，请刷新页面。", "error");
+    return;
+  }
+
+  setJapanLoading(true);
+  setJapanStatus(keyword ? `正在查询“${keyword}”...` : "正在获取日本测试资料...", "loading");
+
+  try {
+    const url = JapanProfileData.buildProfileUrl(keyword);
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const raw = await response.json();
+    currentJapanProfile = JapanProfileData.normalizeJapanProfile(raw);
+    renderJapanProfile(currentJapanProfile);
+    japanProfileLoaded = true;
+    setJapanStatus(keyword ? `已生成与“${keyword}”相关的资料。` : "已生成一组日本测试资料。", "ok");
+  } catch (error) {
+    const suffix = error instanceof Error ? error.message : String(error);
+    setJapanStatus(`生成失败：${suffix}。已保留上一次结果。`, "error");
+  } finally {
+    setJapanLoading(false);
+  }
+}
+
+function switchAppView(viewId) {
+  appTabs.forEach(tab => {
+    const active = tab.dataset.view === viewId;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+    tab.tabIndex = active ? 0 : -1;
+  });
+
+  appViews.forEach(view => {
+    const active = view.id === viewId;
+    view.classList.toggle("hidden", !active);
+    view.hidden = !active;
+  });
+
+  if (statsFloatCard) {
+    statsFloatCard.hidden = viewId !== "paymentView";
+  }
+
+  if (viewId === "japanProfileView" && !japanProfileLoaded) {
+    loadJapanProfile();
+  }
+}
+
+appTabs.forEach(tab => {
+  tab.addEventListener("click", () => switchAppView(tab.dataset.view));
+  tab.addEventListener("keydown", event => {
+    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    event.preventDefault();
+    const currentIndex = appTabs.indexOf(tab);
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const nextIndex = (currentIndex + direction + appTabs.length) % appTabs.length;
+    const nextTab = appTabs[nextIndex];
+    switchAppView(nextTab.dataset.view);
+    nextTab.focus();
+  });
+});
+
+if (jpSearchForm) {
+  jpSearchForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const keyword = jpKeyword.value.trim();
+    if (!keyword) {
+      setJapanStatus("请输入都道府县、邮编、市或町关键词。", "error");
+      jpKeyword.focus();
+      return;
+    }
+    loadJapanProfile(keyword);
+  });
+}
+
+if (jpRefreshBtn) {
+  jpRefreshBtn.addEventListener("click", () => loadJapanProfile());
+}
+
+async function copyJapanField(targetId, button) {
+  const value = document.getElementById(targetId)?.textContent?.trim() || "";
+  if (!value || value === "—") {
+    setJapanStatus("当前字段没有可复制的内容。", "error");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    button.classList.add("copied");
+    setJapanStatus("字段已复制。", "ok");
+    window.setTimeout(() => button.classList.remove("copied"), 1200);
+  } catch (error) {
+    setJapanStatus("复制失败，请手动选择字段内容。", "error");
+  }
+}
+
+document.querySelectorAll(".jp-copy-btn").forEach(button => {
+  button.addEventListener("click", () => copyJapanField(button.dataset.copyTarget, button));
+});
+
+if (jpDownloadBtn) {
+  jpDownloadBtn.addEventListener("click", () => {
+    if (!currentJapanProfile) {
+      setJapanStatus("请先生成一组资料。", "error");
+      return;
+    }
+
+    const content = JapanProfileData.profileToText(currentJapanProfile);
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Japan_Test_Profile_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setJapanStatus("TXT 已下载。", "ok");
+  });
+}

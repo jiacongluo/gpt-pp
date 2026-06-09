@@ -74,6 +74,8 @@ SUCCESS_CITY_HINTS = {
     if item.strip()
 }
 CURL_IMPERSONATE_PROFILE = os.getenv("PLUS_LINK_CURL_IMPERSONATE", "chrome").strip() or "chrome"
+JAPAN_PROFILE_ORIGIN = "https://hant.ratenn.com"
+JAPAN_PROFILE_TIMEOUT_SECONDS = float(os.getenv("PLUS_LINK_JAPAN_PROFILE_TIMEOUT_SECONDS", "10"))
 RACE_OVERALL_TIMEOUT_SECONDS = float(os.getenv("PLUS_LINK_RACE_TIMEOUT_SECONDS", "45"))
 RATE_WINDOW_SECONDS = 60
 RATE_LIMIT_PER_WINDOW = 120
@@ -383,6 +385,89 @@ def sanitize_error_value(value: Any) -> Any:
     if isinstance(value, list):
         return [sanitize_error_value(v) for v in value]
     return value
+
+
+def japan_profile_text(value: Any) -> str:
+    text = str(value or "").strip()
+    return text
+
+
+def sanitize_japan_profile(source: dict[str, Any]) -> dict[str, Any]:
+    data = source if isinstance(source, dict) else {}
+    address_source = data.get("address") if isinstance(data.get("address"), dict) else {}
+    address = address_source if isinstance(address_source, dict) else {}
+    return {
+        "name": japan_profile_text(data.get("name")),
+        "name_hiragana": japan_profile_text(data.get("name_hiragana")),
+        "name_katakana": japan_profile_text(data.get("name_katakana")),
+        "gender": japan_profile_text(data.get("gender")),
+        "birth": japan_profile_text(data.get("birth")),
+        "email": japan_profile_text(data.get("email")),
+        "phone_number": japan_profile_text(data.get("phone_number")),
+        "mobile_phone_number": japan_profile_text(data.get("mobile_phone_number")),
+        "address": {
+            "country": japan_profile_text(address.get("country")),
+            "prefecture": japan_profile_text(address.get("prefecture")),
+            "city": japan_profile_text(address.get("city")),
+            "postal_code": japan_profile_text(address.get("postal_code")),
+            "full_address": japan_profile_text(address.get("full_address")),
+        },
+        "company": japan_profile_text(data.get("company")),
+        "salary": japan_profile_text(data.get("salary")),
+        "os": japan_profile_text(data.get("os")),
+        "user_agent": japan_profile_text(data.get("user_agent")),
+        "homepage": japan_profile_text(data.get("homepage")),
+    }
+
+
+def fetch_japan_profile(keyword: str = "") -> dict[str, Any]:
+    from curl_cffi import requests as curl_requests
+
+    normalized_keyword = str(keyword or "").strip()
+    if normalized_keyword:
+        endpoint = f"{JAPAN_PROFILE_ORIGIN}/jp-address/generate-by-keywords/{quote(normalized_keyword, safe='')}"
+    else:
+        endpoint = f"{JAPAN_PROFILE_ORIGIN}/jp-address/generate-address"
+
+    try:
+        response = curl_requests.get(
+            endpoint,
+            impersonate=CURL_IMPERSONATE_PROFILE,
+            timeout=JAPAN_PROFILE_TIMEOUT_SECONDS,
+            verify=True,
+        )
+    except Exception as exc:
+        raise PublicApiError(
+            "japan_profile_network_error",
+            "日本测试资料接口暂时不可用，请稍后再试",
+            HTTPStatus.BAD_GATEWAY,
+            {"error_type": type(exc).__name__},
+        ) from exc
+
+    status = int(getattr(response, "status_code", 0) or 0)
+    if status < 200 or status >= 300:
+        raise PublicApiError(
+            "japan_profile_upstream_failed",
+            "日本测试资料接口返回异常，请稍后再试",
+            HTTPStatus.BAD_GATEWAY,
+            {"status": status},
+        )
+
+    try:
+        data = response.json()
+    except Exception as exc:
+        raise PublicApiError(
+            "japan_profile_bad_json",
+            "日本测试资料接口响应无法解析",
+            HTTPStatus.BAD_GATEWAY,
+        ) from exc
+    if not isinstance(data, dict):
+        raise PublicApiError(
+            "japan_profile_bad_response",
+            "日本测试资料接口响应结构异常",
+            HTTPStatus.BAD_GATEWAY,
+        )
+    return sanitize_japan_profile(data)
 
 
 def extract_access_token(raw_value: str) -> str:
@@ -2449,7 +2534,8 @@ class PlusLinkHandler(BaseHTTPRequestHandler):
         self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none';",
+            "default-src 'self'; connect-src 'self'; "
+            "base-uri 'none'; frame-ancestors 'none'; form-action 'self'; object-src 'none';",
         )
 
     def send_json(self, status: int, data: dict[str, Any]) -> None:
@@ -2515,12 +2601,13 @@ class PlusLinkHandler(BaseHTTPRequestHandler):
         if not is_valid_host(self.headers.get("Host")):
             self.send_json(HTTPStatus.FORBIDDEN, {"ok": False, "code": "domain_blocked", "message": "Domain access unauthorized. Anti-cloning shield active."})
             return
+        parsed = urlparse(self.path)
         client_ip = get_client_ip(self)
         record_visitor_active(client_ip)
-        if urlparse(self.path).path == "/api/health":
+        if parsed.path == "/api/health":
             self.send_json(HTTPStatus.OK, {"ok": True, "service": "plus-paypal-zero-gate"})
             return
-        if urlparse(self.path).path == "/api/stats":
+        if parsed.path == "/api/stats":
             self.send_json(HTTPStatus.OK, {
                 "ok": True,
                 "success_count": load_counter(),
@@ -2529,7 +2616,25 @@ class PlusLinkHandler(BaseHTTPRequestHandler):
                 "city_stats": city_stats_snapshot(),
             })
             return
-        if urlparse(self.path).path == "/api/background-links":
+        if parsed.path == "/api/japan-profile":
+            if not allow_request(client_ip):
+                self.send_json(
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                    {"ok": False, "code": "rate_limited", "message": "请求过快，请稍后再试"},
+                )
+                return
+            try:
+                query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                self.send_json(HTTPStatus.OK, fetch_japan_profile(str(query.get("keyword") or "")))
+            except PublicApiError as exc:
+                self.send_json(exc.status, {"ok": False, "code": exc.code, "message": exc.message})
+            except Exception as exc:
+                self.send_json(
+                    HTTPStatus.BAD_GATEWAY,
+                    {"ok": False, "code": "japan_profile_error", "message": translate_exception(exc)},
+                )
+            return
+        if parsed.path == "/api/background-links":
             rows: list[dict[str, Any]] = []
             try:
                 if BACKGROUND_LINKS_FILE.exists():

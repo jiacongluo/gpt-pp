@@ -5,14 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ChatGPT 提取支付链接 | ChatGPT Extract Payment Link</title>
     <!-- 物理强刷隔离缓存 -->
-    <link rel="stylesheet" href="/styles.css?v=10" />
-    <script>
-      (function() {
-        if (window.self !== window.top) {
-          window.top.location.replace(window.self.location.href);
-        }
-      })();
-    </script>
+    <link rel="stylesheet" href="/styles.css?v=11" />
   </head>
   <body>
     <!-- 1. 顶部高大上 App Header -->
@@ -40,7 +33,32 @@
       </div>
     </header>
 
-    <main class="shell">
+    <nav class="app-tabs" role="tablist" aria-label="应用视图">
+      <button
+        id="paymentTab"
+        class="app-tab active"
+        type="button"
+        role="tab"
+        aria-selected="true"
+        aria-controls="paymentView"
+        data-view="paymentView"
+      >
+        支付链接控制台
+      </button>
+      <button
+        id="japanProfileTab"
+        class="app-tab"
+        type="button"
+        role="tab"
+        aria-selected="false"
+        aria-controls="japanProfileView"
+        data-view="japanProfileView"
+      >
+        日本测试资料
+      </button>
+    </nav>
+
+    <main id="paymentView" class="shell app-view" role="tabpanel" aria-labelledby="paymentTab">
       <!-- 2. 左右双翼分栏 Dashboard Grid -->
       <div class="dashboard-grid">
         
@@ -199,6 +217,199 @@
       </footer>
     </main>
 
+    <main
+      id="japanProfileView"
+      class="shell app-view hidden"
+      role="tabpanel"
+      aria-labelledby="japanProfileTab"
+      hidden
+    >
+      <section class="japan-heading">
+        <div>
+          <p class="label">Japan Profile</p>
+          <h1>日本测试资料</h1>
+          <p class="japan-heading-copy">按地区关键词查询或随机获取一组日本本地化测试资料。</p>
+        </div>
+        <div id="jpStatus" class="japan-status idle" role="status" aria-live="polite">等待生成。</div>
+      </section>
+
+      <form id="jpSearchForm" class="japan-toolbar">
+        <label class="japan-search-field" for="jpKeyword">
+          <span>地区关键词</span>
+          <input
+            id="jpKeyword"
+            type="search"
+            autocomplete="off"
+            placeholder="都道府县、邮编、市或町"
+          />
+        </label>
+        <button id="jpSearchBtn" type="submit">搜索</button>
+        <button id="jpRefreshBtn" class="secondary" type="button">换一组</button>
+        <button id="jpDownloadBtn" class="secondary" type="button" disabled>下载 TXT</button>
+      </form>
+
+      <section class="japan-profile-grid" aria-label="日本测试资料结果">
+        <article class="panel japan-section">
+          <div class="japan-section-head">
+            <div>
+              <p class="label">Basic Profile</p>
+              <h2>基本信息</h2>
+            </div>
+          </div>
+          <div class="japan-fields">
+            <div class="japan-field japan-field-wide">
+              <span>姓名</span>
+              <strong id="jpName">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpName" title="复制姓名" aria-label="复制姓名">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>平假名</span>
+              <strong id="jpNameHiragana">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpNameHiragana" title="复制平假名" aria-label="复制平假名">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>片假名</span>
+              <strong id="jpNameKatakana">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpNameKatakana" title="复制片假名" aria-label="复制片假名">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>性别</span>
+              <strong id="jpGender">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpGender" title="复制性别" aria-label="复制性别">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>生日</span>
+              <strong id="jpBirth">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpBirth" title="复制生日" aria-label="复制生日">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field japan-field-wide">
+              <span>邮箱</span>
+              <strong id="jpEmail">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpEmail" title="复制邮箱" aria-label="复制邮箱">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>固定电话</span>
+              <strong id="jpPhone">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpPhone" title="复制固定电话" aria-label="复制固定电话">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>手机号码</span>
+              <strong id="jpMobilePhone">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpMobilePhone" title="复制手机号码" aria-label="复制手机号码">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel japan-section">
+          <div class="japan-section-head">
+            <div>
+              <p class="label">Address</p>
+              <h2>地址信息</h2>
+            </div>
+          </div>
+          <div class="japan-fields">
+            <div class="japan-field">
+              <span>国家</span>
+              <strong id="jpCountry">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpCountry" title="复制国家" aria-label="复制国家">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>都道府县</span>
+              <strong id="jpPrefecture">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpPrefecture" title="复制都道府县" aria-label="复制都道府县">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>市区町村</span>
+              <strong id="jpCity">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpCity" title="复制市区町村" aria-label="复制市区町村">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>邮政编码</span>
+              <strong id="jpPostalCode">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpPostalCode" title="复制邮政编码" aria-label="复制邮政编码">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field japan-field-wide">
+              <span>完整地址</span>
+              <strong id="jpFullAddress">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpFullAddress" title="复制完整地址" aria-label="复制完整地址">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel japan-section">
+          <div class="japan-section-head">
+            <div>
+              <p class="label">Work & Device</p>
+              <h2>工作与设备</h2>
+            </div>
+          </div>
+          <div class="japan-fields">
+            <div class="japan-field japan-field-wide">
+              <span>公司</span>
+              <strong id="jpCompany">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpCompany" title="复制公司" aria-label="复制公司">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>薪资</span>
+              <strong id="jpSalary">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpSalary" title="复制薪资" aria-label="复制薪资">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field">
+              <span>操作系统</span>
+              <strong id="jpOs">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpOs" title="复制操作系统" aria-label="复制操作系统">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field japan-field-wide">
+              <span>User-Agent</span>
+              <strong id="jpUserAgent">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpUserAgent" title="复制 User-Agent" aria-label="复制 User-Agent">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+            <div class="japan-field japan-field-wide">
+              <span>主页</span>
+              <strong id="jpHomepage">—</strong>
+              <button class="jp-copy-btn" type="button" data-copy-target="jpHomepage" title="复制主页" aria-label="复制主页">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
     <!-- 全站状态悬浮胶囊二合一 (SaaS Double-Pill Widget) -->
     <div class="stats-float-card">
       <!-- 在线人数节 -->
@@ -223,6 +434,7 @@
     </div>
 
     <!-- 动态强刷缓存 -->
-    <script src="/app.js?v=10"></script>
+    <script src="/japan-profile.js?v=11"></script>
+    <script src="/app.js?v=11"></script>
   </body>
 </html>
